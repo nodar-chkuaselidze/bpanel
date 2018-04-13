@@ -19,10 +19,7 @@ const routerWithClient = client => {
       logger.debug('body:', body);
       const response = await client.request(method, path, payload);
       // prevent logging of potentially huge responses
-      if (
-        path.includes('tx/history') ||
-        (path.includes('tx/last') && Array.isArray(response))
-      ) {
+      if (Array.isArray(response) && array.length > 25) {
         logger.debug(
           `server response (truncated): ${JSON.stringify(
             response.slice(0, 1)
