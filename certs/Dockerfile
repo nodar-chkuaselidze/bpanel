@@ -14,6 +14,7 @@ RUN apt-get update \
 
 # copy the scripts to the appropriate directory
 COPY scripts /opt/securityc
+COPY config /etc/opt/securityc
 
 CMD ["/bin/bash"]
 

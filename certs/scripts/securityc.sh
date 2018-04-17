@@ -6,13 +6,13 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 . "$DIR/example-env-vars.sh"
 
 verbose=false
-while [[ "$#" > 0 ]]; do case $1 in
+while [[ "$#" -gt 0 ]]; do case $1 in
   -v|--verbose) verbose=true;;
   *) echo "Unknown parameter passed: $1"; exit 1;;
 esac; shift; done
 
 # get the input env vars
-input=`env | grep SECURITYC`
+input=$(env | grep SECURITYC)
 
 if [ $verbose = true ]; then
     echo
@@ -24,9 +24,9 @@ fi
 # and grap the app name
 awk_cmd='{ split($1,var_names,"="); split(var_names[1],app_names,"_"); print app_names[2]}'
 
-apps=`echo "$input" | \
+apps=$(echo "$input" | \
     awk "$awk_cmd" \
-    | sort -u`
+    | sort -u)
 
 if [ $verbose = true ]; then
     echo
@@ -36,22 +36,24 @@ if [ $verbose = true ]; then
 fi
 
 function parse_env_config() {
+    local var
+    local result
     # string interpolate the name of the env var
-    local var="SECURITYC_${1}_${2}"
+    var="SECURITYC_${1}_${2}"
     # get the value of the env var itself
     # see https://www.tldp.org/LDP/abs/html/abs-guide.html#IVR
-    local result=$(eval "echo \$$(echo $var)")
+    result=$(eval "echo \$$(echo $var)")
     echo "$result"
 }
 
 # run gen.sh for each set of args
 for app in $apps; do
     # get the environmental variable values
-    arg_common_name=$(parse_env_config ${app} "COMMON_NAME")
-    arg_cert_name=$(parse_env_config ${app} "CERT_NAME")
-    arg_key_name=$(parse_env_config ${app} "KEY_NAME")
-    arg_cert_output_path=$(parse_env_config ${app} "CERT_OUTPUT_PATH")
-    arg_key_output_path=$(parse_env_config ${app} "KEY_OUTPUT_PATH")
+    arg_common_name=$(parse_env_config "${app}" "COMMON_NAME")
+    arg_cert_name=$(parse_env_config "${app}" "CERT_NAME")
+    arg_key_name=$(parse_env_config "${app}" "KEY_NAME")
+    arg_cert_output_path=$(parse_env_config "${app}" "CERT_OUTPUT_PATH")
+    arg_key_output_path=$(parse_env_config "${app}" "KEY_OUTPUT_PATH")
 
 
     # be explicit and check if any of the values are not set
@@ -80,7 +82,8 @@ for app in $apps; do
             echo "calling $DIR/gen.sh ${script_args}"
             echo
         fi
-        # invoke the script
-        $DIR/gen.sh ${script_args}
+        # invoke the script, don't quote as we
+        # want the arguments to split
+        $DIR/tls.sh ${script_args}
     fi
 done
