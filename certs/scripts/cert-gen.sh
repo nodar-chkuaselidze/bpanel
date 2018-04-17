@@ -2,18 +2,14 @@
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+# TODO: debug
+. "$DIR/example-env-vars.sh"
+
 verbose=false
 while [[ "$#" > 0 ]]; do case $1 in
   -v|--verbose) verbose=true;;
   *) echo "Unknown parameter passed: $1"; exit 1;;
 esac; shift; done
-
-
-# export SECURITYC_SERVER_COMMON_NAME=localhost
-# export SECURITYC_SERVER_CERT_NAME=server.crt
-# export SECURITYC_SERVER_KEY_NAME=server.key
-# export SECURITYC_SERVER_KEY_OUTPUT_PATH=$PWD/testo
-# export SECURITYC_SERVER_CERT_OUTPUT_PATH=$PWD/testo
 
 # get the input env vars
 input=`env | grep SECURITYC`

@@ -2,6 +2,15 @@
 
 https://www.linuxhelp.com/how-to-install-and-update-openssl-on-ubuntu-16-04/
 
+## Dependencies
+
+Mac:
+
+```
+$ brew install eettext
+$ brew link --force gettext
+```
+
 # Usage
 
 securityc is configured with environmental variables. To properly generate a cert, 4
