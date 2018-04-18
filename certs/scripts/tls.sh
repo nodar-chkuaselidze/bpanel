@@ -1,57 +1,47 @@
 #!/bin/bash
 
+set -eou pipefail
+
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # set default values
-common_name=localhost
 cert_name=cert.crt
 key_name=cert.key
-cert_output_dir=$PWD
-key_output_dir=$PWD
+cert_out="$DIR/$cert_name"
+key_out="$DIR/$key_name"
 verbose=false
+
+# TODO: use dev config for now
+config_path=/etc/opt/securityc/openssl-dev.conf
+alt_name=localhost
 
 # the wrapper script checks to make sure that
 # empty strings are not passed in as arguments
 while [[ "$#" -gt 0 ]]; do case $1 in
-  -cn|--common-name) common_name="$2"; shift;;
-  -c|--cert-name) cert_name="$2"; shift;;
-  -k|--key-name) key_name="$2"; shift;;
-  -oc|--cert-output-dir) cert_output_dir="$2"; shift;;
-  -ok|--key-output-dir) key_output_dir="$2"; shift;;
+  -an|--alt-name) alt_name="$2"; shift;;
+  -co|--cert-out) cert_out="$2"; shift;;
+  -ko|--key-out) key_out="$2"; shift;;
+  -c|--config) config_path="$2"; shift;;
   -v|--verbose) verbose=true;;
   *) echo "Unknown parameter passed: $1"; exit 1;;
 esac; shift; done
-
-# TODO: use distinguished_name
-distinguished_name=purse
 
 if [ $verbose = true ]; then
     echo
     echo "variables used:"
     echo
-    echo "common name: ${common_name}"
-    echo "cert name: ${cert_name}"
-    echo "key name: ${key_name}"
-    echo "cert output dir: ${cert_output_dir}"
-    echo "key output dir: ${key_output_dir}"
-    echo "distinguished_name: ${distinguished_name}"
+    echo "cert output: ${cert_out}"
+    echo "key output: ${key_out}"
     echo
 fi
 
-# TODO: use envsubst + a true config file for openssl
-# hardcode ssl config for now
-BASE_DIR="${DIR}/.."
-CONFIG_DIR="${BASE_DIR}/config"
-CONFIG_FILE="openssl-dev.conf"
-
 # export variables needed to build the config
-export docker_dns=bcoin
+export docker_dns="$alt_name"
 
 # set vars variable, a : separated string
 # of variables to be replaced in the input file
 VARS='${docker_dns}'
-config=$(envsubst "$VARS" < "${CONFIG_DIR}/${CONFIG_FILE}")
-
+config=$(envsubst "$VARS" < "${config_path}")
 
 if [ $verbose = true ]; then
     echo
@@ -62,11 +52,12 @@ if [ $verbose = true ]; then
 	echo
 fi
 
-openssl req -x509 -out "${cert_output_dir}/${cert_name}" \
-    -keyout "${key_output_dir}/${key_name}" \
+openssl req -x509 -out "${cert_out}" \
+    -keyout "${key_out}" \
     -newkey rsa:2048 -days 3650 \
     -nodes -sha256 \
     -subj "/C=US/ST=California/L=SF/O=purse.io/OU=bcoin/CN=securityc bpanel" \
     -extensions v3_req \
     -config <( printf "%s" "$config" )
+# TODO: test if printf is needed here
 

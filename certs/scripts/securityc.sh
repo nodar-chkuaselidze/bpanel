@@ -1,9 +1,8 @@
 #!/bin/bash
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+set -eou pipefail
 
-# TODO: debug
-. "$DIR/example-env-vars.sh"
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 verbose=false
 while [[ "$#" -gt 0 ]]; do case $1 in
@@ -23,6 +22,7 @@ fi
 # split the env vars by = then split by _
 # and grap the app name
 awk_cmd='{ split($1,var_names,"="); split(var_names[1],app_names,"_"); print app_names[2]}'
+# TODO: this is fragile to user input, if they pass an extra _ before the app name
 
 apps=$(echo "$input" | \
     awk "$awk_cmd" \
@@ -46,40 +46,35 @@ function parse_env_config() {
     echo "$result"
 }
 
-# run gen.sh for each set of args
+# run tls.sh for each set of args
 for app in $apps; do
     # get the environmental variable values
-    arg_common_name=$(parse_env_config "${app}" "COMMON_NAME")
-    arg_cert_name=$(parse_env_config "${app}" "CERT_NAME")
-    arg_key_name=$(parse_env_config "${app}" "KEY_NAME")
-    arg_cert_output_path=$(parse_env_config "${app}" "CERT_OUTPUT_PATH")
-    arg_key_output_path=$(parse_env_config "${app}" "KEY_OUTPUT_PATH")
+    arg_alt_name=$(parse_env_config "${app}" "ALT_NAME")
+    arg_cert_out=$(parse_env_config "${app}" "CERT_OUT")
+    arg_key_out=$(parse_env_config "${app}" "KEY_OUT")
+    arg_config_path=$(parse_env_config "${app}" "CONFIG_PATH")
 
 
     # be explicit and check if any of the values are not set
-    if [ "$arg_common_name" == "" ] \
-        || [ "$arg_cert_name" == "" ] \
-        || [ "$arg_key_name" == "" ] \
-        || [ "$arg_cert_output_path" == "" ] \
-        || [ "$arg_key_output_path" == "" ]; then
+    if [ "$arg_alt_name" == "" ] \
+        || [ "$arg_cert_out" == "" ] \
+        || [ "$arg_key_out" == "" ] \
+        || [ "$arg_config_path" == "" ]; then
         echo "Missing argument for $app"
-        echo "cert name: $arg_cert_name"
-        echo "key name: $arg_key_name"
-        echo "common name: $arg_common_name"
-        echo "cert output path: $arg_cert_output_path"
-        echo "key output path: $arg_key_output_path"
+        echo "cert out: $arg_cert_out"
+        echo "key out: $arg_key_out"
+        echo "config path: $arg_config_path"
         echo "skipping certificate generation"
         echo
     else
         # build the script arguments
-        script_args="-c ${arg_cert_name} -cn ${arg_common_name} -k ${arg_key_name} \
-            -oc ${arg_cert_output_path} -ok ${arg_key_output_path}"
+        script_args="-an ${arg_alt_name} -co ${arg_cert_out} -ko ${arg_key_out} -c ${arg_config_path}"
         if [ $verbose = true ]; then
             # append verbose flag if verbose is true
             echo "successfully parsed all arguments"
             script_args="${script_args} -v"
             echo
-            echo "calling $DIR/gen.sh ${script_args}"
+            echo "calling $DIR/tls.sh ${script_args}"
             echo
         fi
         # invoke the script, don't quote as we
