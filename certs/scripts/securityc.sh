@@ -43,42 +43,54 @@ function parse_env_config() {
     # get the value of the env var itself
     # see https://www.tldp.org/LDP/abs/html/abs-guide.html#IVR
     result=$(eval "echo \$$(echo $var)")
-    echo "$result"
+    # return the result if it was parsed, otherwise an empty string
+    if [ -n "$result" ]; then
+        echo "$result"
+    else
+        echo ""
+    fi
 }
 
 # run tls.sh for each set of args
 for app in $apps; do
     # get the environmental variable values
-    arg_alt_name=$(parse_env_config "${app}" "ALT_NAME")
-    arg_cert_out=$(parse_env_config "${app}" "CERT_OUT")
+    arg_ca_common_name=$(parse_env_config "${app}" "CA_COMMON_NAME")
+    arg_cert_common_name=$(parse_env_config "${app}" "CERT_COMMON_NAME")
+    arg_cert_ip=$(parse_env_config "${app}" "CERT_IP")
+    arg_cert_domain=$(parse_env_config "${app}" "CERT_DOMAIN")
+    arg_ca_out=$(parse_env_config "${app}" "CA_OUT")
     arg_key_out=$(parse_env_config "${app}" "KEY_OUT")
-    arg_config_path=$(parse_env_config "${app}" "CONFIG_PATH")
+    arg_cert_out=$(parse_env_config "${app}" "CERT_OUT")
 
 
-    # be explicit and check if any of the values are not set
-    if [ "$arg_alt_name" == "" ] \
+    # be explicit and check that all of the required
+    # arguments are set
+    if [ "$arg_cert_common_name" == "" ] \
         || [ "$arg_cert_out" == "" ] \
         || [ "$arg_key_out" == "" ] \
-        || [ "$arg_config_path" == "" ]; then
+        || [ "$arg_ca_out" == "" ]; then
         echo "Missing argument for $app"
+        echo "cert common name: $arg_cert_common_name"
         echo "cert out: $arg_cert_out"
         echo "key out: $arg_key_out"
-        echo "config path: $arg_config_path"
+        echo "ca out: $arg_ca_out"
         echo "skipping certificate generation"
         echo
     else
         # build the script arguments
-        script_args="-an ${arg_alt_name} -co ${arg_cert_out} -ko ${arg_key_out} -c ${arg_config_path}"
+        script_args="--ca-common-name ${arg_ca_common_name} --cert-common-name ${arg_cert_common_name}"
+        script_args="${script_args} --ip ${arg_cert_ip} --domain ${arg_cert_domain}"
+        script_args="${script_args} --ca-out ${arg_ca_out} --key-out ${arg_key_out} --cert-out ${arg_cert_out}"
         if [ $verbose = true ]; then
             # append verbose flag if verbose is true
             echo "successfully parsed all arguments"
             script_args="${script_args} -v"
             echo
-            echo "calling $DIR/tls.sh ${script_args}"
+            echo "calling $DIR/certstrap.sh ${script_args}"
             echo
         fi
         # invoke the script, don't quote as we
         # want the arguments to split
-        $DIR/tls.sh ${script_args}
+        $DIR/certstrap.sh ${script_args}
     fi
 done

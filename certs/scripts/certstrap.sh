@@ -26,7 +26,7 @@ function usage() {
   echo "generate a ca cert, a csr, then sign"
   echo "-c|--ca-common-name - common name on generated ca cert"
   echo "-ce|--cert-common-name - common name on generated cert"
-  echo "-ip - ip on X509v3 Subject Alternative Name, can be multiple values comma separated"
+  echo "-ip|--ip - ip on X509v3 Subject Alternative Name, can be multiple values comma separated"
   echo "-d|--domain - dns on X509v3 Subject Alternative Name, can be multiple values comman separated"
   echo "-ao|--ca-path-out - path to generated ca"
   echo "-co|--cert-path-out - path to generated cert"
