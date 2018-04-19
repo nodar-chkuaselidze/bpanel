@@ -61,46 +61,58 @@ log "CA Common Name: $ca_common_name"
 
 # create new ca if one doesn't exist already
 if [[ ! -f "$PWD/out/$ca_common_name.key" ]]; then
-    log "creating CA"
+    # create the files:
+    # "$PWD/out/$ca_common_name.key"
+    # "$PWD/out/$ca_common_name.crt"
+    # "$PWD/out/$ca_common_name.crl"
+    log "Invoking certstrap init with args: --common-name $ca_common_name --passphrase \"\""
     certstrap init --common-name "$ca_common_name" --passphrase ""
 else
     log "CA already found"
 fi
-# creates the files:
-# "out/$ca_common_name.key"
-# "out/$ca_common_name.crt"
-# "out/$ca_common_name.crl"
 
 request_cert_arg=""
 [[ ! -z "$cert_common_name" ]] && request_cert_arg="${request_cert_arg} --common-name ${cert_common_name}"
 [[ ! -z "$ip" ]] && request_cert_arg="${request_cert_arg} --ip ${ip}"
 [[ ! -z "$domain" ]] && request_cert_arg="${request_cert_arg} --domain ${domain}"
 
-log "Invoking certstrap with args: ${request_cert_arg} --passphrase \"\""
+log "Invoking certstrap request-cert with args: ${request_cert_arg} --passphrase \"\""
+log "Running from directory: $PWD"
+
+# create the files:
+# "$PWD/out/$cert_common_name.key"
+# "$PWD/out/$cert_common_name.csr"
 certstrap request-cert $request_cert_arg --passphrase ""
 
 # creates the files:
-# "out/$cert_common_name.key"
-# "out/$cert_common_name.csr"
-
-# TODO: determine if edge cases around autoformatting of camelcase vs snakecase
+# "$PWD/out/$cert_common_name.crt"
+# TODO (mark): determine if edge cases around autoformatting of camelcase vs snakecase
 certstrap sign "${cert_common_name}" --CA "${ca_common_name}"
 
-# creates the files:
-# "out/$cert_common_name.crt"
 
-# now we want:
-# "out/$cert_common_name.crt"
-# "out/$cert_common_name.key"
-# in the proper location
+# move these files to the proper location
+# "$PWD/out/$cert_common_name.crt"
+# "$PWD/out/$cert_common_name.key"
+OUT_DIR=
+# handle case when in root to prevent double /
+if [ "$PWD" == "/" ]; then
+    OUT_DIR="/out"
+else
+    OUT_DIR="${PWD}/out"
+fi
 
-ca_file="$DIR/out/$ca_common_name.crt"
-cert_file="$DIR/out/$cert_common_name.crt"
-key_file="$DIR/out/$cert_common_name.key"
+ca_file="$OUT_DIR/$ca_common_name.crt"
+cert_file="$OUT_DIR/$cert_common_name.crt"
+key_file="$OUT_DIR/$cert_common_name.key"
 
+# move the ca_file to a place
+# where the user can access it
 move "$ca_file" "$ca_path_out"
+
 move "$cert_file" "$cert_path_out"
 move "$key_file" "$key_path_out"
 
+
 # remove out directory
-rm -rf "$DIR/out"
+rm -rf "$OUT_DIR"
+

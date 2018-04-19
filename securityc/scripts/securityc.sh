@@ -11,7 +11,7 @@ while [[ "$#" -gt 0 ]]; do case $1 in
 esac; shift; done
 
 # get the input env vars
-input=$(env | grep SECURITYC)
+input=$(env | grep SECURITYC | grep -v WAIT_COUNT)
 
 if [ $verbose = true ]; then
     echo
@@ -21,7 +21,7 @@ fi
 
 # split the env vars by = then split by _
 # and grap the app name
-awk_cmd='{ split($1,var_names,"="); split(var_names[1],app_names,"_"); print app_names[2]}'
+awk_cmd='{ split($1,var_names,"="); split(var_names[1],app_names,"_"); print app_names[2] }'
 # TODO: this is fragile to user input, if they pass an extra _ before the app name
 
 apps=$(echo "$input" | \
@@ -92,5 +92,11 @@ for app in $apps; do
         # invoke the script, don't quote as we
         # want the arguments to split
         $DIR/certstrap.sh ${script_args}
+
+        echo "completed cerstrap for $app"
     fi
 done
+
+echo "done generating certs"
+echo "exiting"
+
