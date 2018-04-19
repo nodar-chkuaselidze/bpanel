@@ -22,7 +22,7 @@ Building the container
 ```bash
 $ basename $PWD
 > bpanel
-$ docker build -t securityc:0.0.1 securityc
+$ docker build -t bpanel/securityc:0.0.1 securityc
 ```
 securityc is configured with environmental variables. An arbitrary number of certs can be generated,
 to properly bundle the inputs per cert, the environmental variables must follow the schema:

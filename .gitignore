@@ -77,3 +77,4 @@ secrets.env
 
 # Mac OS X
 .DS_Store
+ca.crt
