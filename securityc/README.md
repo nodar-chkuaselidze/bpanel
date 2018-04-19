@@ -1,6 +1,7 @@
-# resources
+# securityc
 
-https://www.linuxhelp.com/how-to-install-and-update-openssl-on-ubuntu-16-04/
+automatic tls generation based on [certstrap](https://github.com/square/certstrap)
+with nginx reverse proxy to terminate tls
 
 ## Dependencies
 
@@ -16,8 +17,14 @@ for rendering templates with environmental variables.
 
 # Usage
 
-securityc is configured with environmental variables. To properly generate a cert, 4
-environmental variables are required. An arbitrary number of certs can be generated,
+Building the container
+
+```bash
+$ basename $PWD
+> bpanel
+$ docker build -t securityc:0.0.1 securityc
+```
+securityc is configured with environmental variables. An arbitrary number of certs can be generated,
 to properly bundle the inputs per cert, the environmental variables must follow the schema:
 
 ```bash
@@ -28,6 +35,7 @@ The prefix `SECURITYC` ensures that there are no collisions with other environme
 The `{APP_NAME}` refers to an application that a cert/private key should be generated for.
 The `{ARG_NAME}` refers to an argument that the script needs to generate the cert/private key pair.
 The script will be invoked once for each `{APP_NAME}` that has all of the appropriate arguments.
+NOTE: Please do not put an `_` in your `{APP_NAME}`, it will confuse the parser
 
 The `{ARG_NAME}`s that must be provided are:
 
@@ -39,7 +47,7 @@ The `{ARG_NAME}`s that must be provided are:
 - `KEY_OUT` - Output file for generated TLS key
 - `CERT_OUT` - Output file for generated + signed TLS cert
 
-An example would look like:
+An example where the `{APP_NAME}` is set to `SERVER` looks like this:
 
 ```bash
 export SECURITYC_SERVER_CA_COMMON_NAME=bpanel
@@ -56,7 +64,7 @@ Note, not all of the output is displayed
 
 First up, the Certificate Authority
 
-```
+```bash
 $ openssl x509 -noout -text -in /etc/ssl/certs/ca.crt
 ```
 
@@ -84,7 +92,7 @@ can do certificate signing.
 
 Now the requested Certificate
 
-```
+```bash
 $ openssl x509 -noout -text -in /etc/nginx/tls.crt
 ```
 
@@ -114,4 +122,8 @@ The value of `SECURITYC_SERVER_CERT_COMMON_NAME` sets the `Subject CN`,
 `SECURITYC_SERVER_CERT_IP` and `SECURITYC_SERVER_CERT_DOMAIN` set the values
 of the `X509v3 Subject Alternative Name` `IP Address` and `DNS` fields
 respectively.
+
+## TODO Features
+
+- `envsubst` auto generation of `nginx.conf`
 
