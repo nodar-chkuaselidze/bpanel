@@ -17,7 +17,10 @@ LABEL "version"="0.0.1"
 
 COPY --from=builder /usr/local/bin/certstrap /usr/local/bin/
 
+# main application scripts
 COPY scripts /opt/securityc
+# nginx config
+COPY config /etc/nginx
 
 CMD ["/opt/securityc/entrypoint.sh"]
 
