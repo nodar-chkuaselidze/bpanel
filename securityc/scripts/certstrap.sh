@@ -4,6 +4,9 @@ set -eou pipefail
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+source $DIR/common.sh
+
+# set initial values
 ca_common_name=""
 cert_common_name=""
 ip=""
@@ -11,17 +14,14 @@ domain=""
 verbose=false
 
 ca_path_out="$DIR/ca.crt"
+ca_key_path_out="$DIR/ca.key"
 cert_path_out="$DIR/cert.crt"
 key_path_out="$DIR/key.crt"
+ca_path_in="$DIR/ca.crt"
+ca_key_path_in="$DIR/ca.key"
 
-function log() {
-    if [ $verbose == true ]; then
-        echo
-        echo "$1"
-        echo
-    fi
-}
 
+# TODO: update usage
 function usage() {
   echo "generate a ca cert, a csr, then sign"
   echo "-c|--ca-common-name - common name on generated ca cert"
@@ -34,24 +34,25 @@ function usage() {
   echo "-v|--verbose"
 }
 
+# move a file from first arg to second arg
 function move() {
-  log "making $1 writable"
   chmod u+w "$1"
-  log "Runing command:"
-  log "mv $1 $2"
+  log $'Runing command:\n'"mv $1 $2"
   mv -f "$1" "$2"
-  log "removing write permissions $2"
   chmod u-w "$2"
 }
 
 while [[ "$#" -gt 0 ]]; do case $1 in
-  -c|--ca-common-name) ca_common_name="$2"; shift;;
-  -ce|--cert-common-name) cert_common_name="$2"; shift;;
-  -ip|--ip) ip="$2"; shift;;
-  -d|--domain) domain="$2"; shift;;
-  -ao|--ca-out) ca_path_out="$2"; shift;;
-  -co|--cert-out) cert_path_out="$2"; shift;;
-  -ko|--key-out) key_path_out="$2"; shift;;
+  --ca-common-name) ca_common_name="$2"; shift;;
+  --cert-common-name) cert_common_name="$2"; shift;;
+  --ip) ip="$2"; shift;;
+  --domain) domain="$2"; shift;;
+  --ca-in) ca_path_in="$2"; shift;;
+  --ca-key-in) ca_key_path_in="$2"; shift;;
+  --ca-key-out) ca_key_path_out="$2"; shift;;
+  --ca-out) ca_path_out="$2"; shift;;
+  --cert-out) cert_path_out="$2"; shift;;
+  --key-out) key_path_out="$2"; shift;;
   -v|--verbose) verbose=true;;
   *) echo "Unknown parameter passed: $1"; usage; exit 1;;
 esac; shift; done
@@ -60,7 +61,7 @@ esac; shift; done
 log "CA Common Name: $ca_common_name"
 
 # create new ca if one doesn't exist already
-if [[ ! -f "$PWD/out/$ca_common_name.key" ]]; then
+if [[ ! -f "$ca_path_in" ]]; then
     # create the files:
     # "$PWD/out/$ca_common_name.key"
     # "$PWD/out/$ca_common_name.crt"
@@ -68,9 +69,26 @@ if [[ ! -f "$PWD/out/$ca_common_name.key" ]]; then
     log "Invoking certstrap init with args: --common-name $ca_common_name --passphrase \"\""
     certstrap init --common-name "$ca_common_name" --passphrase ""
 else
-    log "CA already found"
+    log "CA present at $ca_path_in"
+    # make sure that the ca key is present
+    # this is needed to do signing
+    if [[ -f "$ca_key_path_in" ]]; then
+        log "CA key found at $ca_key_path_in"
+        # move CA to directory certstrap uses
+        mkdir -p "$PWD/out"
+        log "moving $ca_path_in to $PWD/out/$ca_common_name.crt"
+        move "$ca_path_in" "$PWD/out/$ca_common_name.crt"
+        log "moving $ca_key_path_in" "$PWD/out/$ca_common_name.key"
+        move "$ca_key_path_in" "$PWD/out/$ca_common_name.key"
+    else
+        echo "please provide the CA key"
+        # CA key is necessary for signing
+        exit 1
+    fi
 fi
 
+# append to request_cert_arg only if the lengths of
+# the environmental variables are not zero
 request_cert_arg=""
 [[ ! -z "$cert_common_name" ]] && request_cert_arg="${request_cert_arg} --common-name ${cert_common_name}"
 [[ ! -z "$ip" ]] && request_cert_arg="${request_cert_arg} --ip ${ip}"
@@ -84,11 +102,9 @@ log "Running from directory: $PWD"
 # "$PWD/out/$cert_common_name.csr"
 certstrap request-cert $request_cert_arg --passphrase ""
 
-# creates the files:
+# creates the file:
 # "$PWD/out/$cert_common_name.crt"
-# TODO (mark): determine if edge cases around autoformatting of camelcase vs snakecase
 certstrap sign "${cert_common_name}" --CA "${ca_common_name}"
-
 
 # move these files to the proper location
 # "$PWD/out/$cert_common_name.crt"
@@ -102,17 +118,17 @@ else
 fi
 
 ca_file="$OUT_DIR/$ca_common_name.crt"
+ca_key_file="$OUT_DIR/$ca_common_name.key"
 cert_file="$OUT_DIR/$cert_common_name.crt"
 key_file="$OUT_DIR/$cert_common_name.key"
 
-# move the ca_file to a place
-# where the user can access it
+# move each of the files to their
+# user specified locations
 move "$ca_file" "$ca_path_out"
-
+move "$ca_key_file" "$ca_key_path_out"
 move "$cert_file" "$cert_path_out"
 move "$key_file" "$key_path_out"
 
-
-# remove out directory
+log "cleaning up $OUT_DIR"
 rm -rf "$OUT_DIR"
 

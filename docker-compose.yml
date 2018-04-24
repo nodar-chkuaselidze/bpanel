@@ -34,13 +34,18 @@ services:
       - SECURITYC_SERVER_CERT_COMMON_NAME=localhost
       - SECURITYC_SERVER_CERT_IP=127.0.0.1
       - SECURITYC_SERVER_CERT_DOMAIN=localhost
+      # user provided CA+CA key
+      - SECURITYC_SERVER_CA_IN=/etc/ssl/certs/ca.crt
+      - SECURITYC_SERVER_CA_KEY_IN=/etc/ssl/certs/ca.key
+      # generated CA+CA out
       - SECURITYC_SERVER_CA_OUT=/etc/ssl/certs/ca.crt
-      # nginx config knows to look in /etc/nginx
-      - SECURITYC_SERVER_KEY_OUT=/etc/nginx/tls.key
+      - SECURITYC_SERVER_CA_KEY_OUT=/etc/ssl/certs/ca.key
+      # leaf cert+key out
       - SECURITYC_SERVER_CERT_OUT=/etc/nginx/tls.crt
+      - SECURITYC_SERVER_KEY_OUT=/etc/nginx/tls.key
     volumes:
-      # expose ca cert to the user
-      - ./:/etc/ssl/certs
+      # mount local cert directory into container
+      - ./server/certs:/etc/ssl/certs
       - ./securityc/config/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./securityc/config/mime.types:/etc/nginx/mime.types:ro
 
