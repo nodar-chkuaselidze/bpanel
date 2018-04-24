@@ -110,8 +110,8 @@ for app in $apps; do
         fi
         # CA_KEY_IN is provided and is the path to a file
         if [[ ! -z "$arg_ca_key_in" ]] && [[ -f "$arg_ca_key_in" ]]; then
-            log "using provided ca at $arg_ca_in"
-            script_args=$(append "$script_args" "--ca-in ${arg_ca_in}")
+            log "using provided ca key at $arg_ca_key_in"
+            script_args=$(append "$script_args" "--ca-key-in ${arg_ca_key_in}")
         fi
 
         # append required args: CERT_OUT, KEY_OUT, CERT_COMMON_NAME, CA_COMMON_NAME

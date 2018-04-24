@@ -56,9 +56,17 @@ while [[ "$#" -gt 0 ]]; do case $1 in
   *) echo "Unknown parameter passed: $1"; usage; exit 1;;
 esac; shift; done
 
+log "Running from directory: $PWD"
+
+OUT_DIR=
+# handle case when in root to prevent double /
+if [ "$PWD" == "/" ]; then
+    OUT_DIR="/out"
+else
+    OUT_DIR="${PWD}/out"
+fi
 
 log "CA Common Name: $ca_common_name"
-log "CA path in: $ca_path_in"
 
 # create new ca if one doesn't exist already
 if [[ ! -f "$ca_path_in" ]]; then
@@ -75,11 +83,11 @@ else
     if [[ -f "$ca_key_path_in" ]]; then
         log "CA key found at $ca_key_path_in"
         # move CA to directory certstrap uses
-        mkdir -p "$PWD/out"
-        log "moving $ca_path_in to $PWD/out/$ca_common_name.crt"
-        move "$ca_path_in" "$PWD/out/$ca_common_name.crt"
-        log "moving $ca_key_path_in" "$PWD/out/$ca_common_name.key"
-        move "$ca_key_path_in" "$PWD/out/$ca_common_name.key"
+        mkdir -p "$OUT_DIR"
+        log "moving $ca_path_in to $OUT_DIR/$ca_common_name.crt"
+        move "$ca_path_in" "$OUT_DIR/$ca_common_name.crt"
+        log "moving $ca_key_path_in" "$OUT_DIR/$ca_common_name.key"
+        move "$ca_key_path_in" "$OUT_DIR/$ca_common_name.key"
     else
         echo "please provide the CA key"
     fi
@@ -91,8 +99,6 @@ request_cert_arg=""
 [[ ! -z "$cert_common_name" ]] && request_cert_arg="${request_cert_arg} --common-name ${cert_common_name}"
 [[ ! -z "$ip" ]] && request_cert_arg="${request_cert_arg} --ip ${ip}"
 [[ ! -z "$domain" ]] && request_cert_arg="${request_cert_arg} --domain ${domain}"
-
-log "Running from directory: $PWD"
 
 log $'Invoking:\n'"certstrap request-cert ${request_cert_arg} --passphrase \"\""
 # create the files:
@@ -106,16 +112,6 @@ log $'Invoking:\n'"certstrap sign ${cert_common_name} --CA ${ca_common_name}"
 certstrap sign "${cert_common_name}" --CA "${ca_common_name}"
 
 # move these files to the proper location
-# "$PWD/out/$cert_common_name.crt"
-# "$PWD/out/$cert_common_name.key"
-OUT_DIR=
-# handle case when in root to prevent double /
-if [ "$PWD" == "/" ]; then
-    OUT_DIR="/out"
-else
-    OUT_DIR="${PWD}/out"
-fi
-
 ca_file="$OUT_DIR/$ca_common_name.crt"
 ca_key_file="$OUT_DIR/$ca_common_name.key"
 cert_file="$OUT_DIR/$cert_common_name.crt"
