@@ -20,7 +20,6 @@ key_path_out="$DIR/key.crt"
 ca_path_in="$DIR/ca.crt"
 ca_key_path_in="$DIR/ca.key"
 
-
 # TODO: update usage
 function usage() {
   echo "generate a ca cert, a csr, then sign"
@@ -59,6 +58,7 @@ esac; shift; done
 
 
 log "CA Common Name: $ca_common_name"
+log "CA path in: $ca_path_in"
 
 # create new ca if one doesn't exist already
 if [[ ! -f "$ca_path_in" ]]; then
@@ -82,8 +82,6 @@ else
         move "$ca_key_path_in" "$PWD/out/$ca_common_name.key"
     else
         echo "please provide the CA key"
-        # CA key is necessary for signing
-        exit 1
     fi
 fi
 
@@ -94,9 +92,9 @@ request_cert_arg=""
 [[ ! -z "$ip" ]] && request_cert_arg="${request_cert_arg} --ip ${ip}"
 [[ ! -z "$domain" ]] && request_cert_arg="${request_cert_arg} --domain ${domain}"
 
-log "Invoking certstrap request-cert with args: ${request_cert_arg} --passphrase \"\""
 log "Running from directory: $PWD"
 
+log $'Invoking:\n'"certstrap request-cert ${request_cert_arg} --passphrase \"\""
 # create the files:
 # "$PWD/out/$cert_common_name.key"
 # "$PWD/out/$cert_common_name.csr"
@@ -104,6 +102,7 @@ certstrap request-cert $request_cert_arg --passphrase ""
 
 # creates the file:
 # "$PWD/out/$cert_common_name.crt"
+log $'Invoking:\n'"certstrap sign ${cert_common_name} --CA ${ca_common_name}"
 certstrap sign "${cert_common_name}" --CA "${ca_common_name}"
 
 # move these files to the proper location

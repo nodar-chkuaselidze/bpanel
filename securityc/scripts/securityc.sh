@@ -61,40 +61,71 @@ for app in $apps; do
     arg_key_out=$(parse_env_config "${app}" "KEY_OUT")
     arg_cert_out=$(parse_env_config "${app}" "CERT_OUT")
 
-    log "ca in: $arg_ca_in"
+    # different cases:
+    # 1. provided ca + generate leaf cert/key
+    #  - ca specific
+    #    CA_IN, CA_KEY_IN
+    #  - cert specific
+    #    CERT_OUT, KEY_OUT, CERT_COMMON_NAME, CERT_IP, CERT_DOMAIN
+    # 2. generate ca + generate leaf cert/key
+    #  - ca specific:
+    #    CA_COMMON_NAME, CA_OUT, CA_KEY_OUT
+    #  - cert specific:
+    #    CERT_OUT, KEY_OUT, CERT_COMMON_NAME, CERT_IP, CERT_DOMAIN
 
-    # start the script args as an empty string
-    script_args=""
+    # require at least one of CERT_IP and CERT_DOMAIN
+    if [[ -z "$arg_cert_ip" ]] && [[ -z "$arg_cert_domain" ]]; then
+        echo "Please provide at least one of CERT_IP and CERT_DOMAIN"
+        echo "SECURITYC_${app}_CERT_IP=${arg_cert_ip}"
+        echo "SECURITYC_${app}_DOMAIN=${arg_cert_domain}"
 
-    # env var is provided and is the path to a file
-    if [[ ! -z "$arg_ca_in" ]] && [[ -f "$arg_ca_in" ]]; then
-        log "using provided ca at $arg_ca_in"
-        script_args=$(append "$script_args" "--ca-in ${arg_ca_in}")
-    fi
-
-    log $'script args\n'"$script_args"
-
-    # be explicit and check that all of the required
-    # arguments are set
-    if [[ -z "$arg_cert_common_name" ]] \
-        || [[ -z "$arg_cert_out" ]] \
-        || [[ -z "$arg_key_out" ]] \
-        || [[ -z "$arg_ca_out" ]]; then
-        echo "Missing argument for $app"
-        echo "cert common name: $arg_cert_common_name"
-        echo "cert out: $arg_cert_out"
-        echo "key out: $arg_key_out"
-        echo "ca out: $arg_ca_out"
         echo "skipping certificate generation"
-        echo
-    else
+    # require CERT_OUT, KEY_OUT, CERT_COMMON_NAME, CA_COMMON_NAME
+    elif [[ -z "$arg_cert_common_name" ]] || [[ -z "$arg_cert_out" ]] \
+        || [[ -z "$arg_key_out" ]] || [[ -z "$arg_ca_common_name" ]]; then
+        echo "Please provide CERT_OUT, KEY_OUT, CERT_COMMON_NAME, CA_COMMON_NAME"
+        echo "SECURITYC_${app}_CERT_OUT=${arg_cert_out}"
+        echo "SECURITYC_${app}_KEY_OUT=${arg_key_out}"
+        echo "SECURITYC_${app}_CERT_COMMON_NAME=${arg_cert_common_name}"
+        echo "SECURITYC_${app}_CA_COMMON_NAME=${arg_ca_common_name}"
 
-        # build the script arguments
-        script_args=$(append "$script_args" "--ca-common-name ${arg_ca_common_name} --cert-common-name ${arg_cert_common_name}")
-        script_args=$(append "$script_args" "--ip ${arg_cert_ip} --domain ${arg_cert_domain}")
-        script_args=$(append "$script_args" "--ca-out ${arg_ca_out} --key-out ${arg_key_out} --cert-out ${arg_cert_out}")
-        script_args=$(append "$script_args" "--ca-key-in ${arg_ca_key_in}")
-        script_args=$(append "$script_args" "--ca-key-out ${arg_ca_key_out}")
+        echo "skipping certificate generation"
+    # both or neither CA_IN and CA_KEY_IN must be provided
+    elif ( ([[ ! -z "$arg_ca_in" ]] && [[ -z "$arg_ca_key_in" ]]) \
+        || ([[ -z "$arg_ca_in" ]] && [[ ! -z "$arg_ca_key_in" ]]) ); then
+        echo "Please provide both or neither of CA_IN and CA_KEY_IN"
+        echo "cert common name: $arg_cert_common_name"
+        echo "SECURITYC_${app}_CA_IN=${arg_ca_in}"
+        echo "SECURITYC_${app}_CA_KEY_IN=${arg_ca_key_in}"
+
+        echo "skipping certificate generation"
+    else
+        # start the script args as an empty string
+        script_args=""
+
+        # CA_IN is provided and is the path to a file
+        if [[ ! -z "$arg_ca_in" ]] && [[ -f "$arg_ca_in" ]]; then
+            log "using provided ca at $arg_ca_in"
+            script_args=$(append "$script_args" "--ca-in ${arg_ca_in}")
+        fi
+        # CA_KEY_IN is provided and is the path to a file
+        if [[ ! -z "$arg_ca_key_in" ]] && [[ -f "$arg_ca_key_in" ]]; then
+            log "using provided ca at $arg_ca_in"
+            script_args=$(append "$script_args" "--ca-in ${arg_ca_in}")
+        fi
+
+        # append required args: CERT_OUT, KEY_OUT, CERT_COMMON_NAME, CA_COMMON_NAME
+        script_args=$(append "$script_args" "--cert-out ${arg_cert_out} --key-out ${arg_key_out}")
+        script_args=$(append "$script_args" "--cert-common-name ${arg_cert_common_name} --ca-common-name ${arg_ca_common_name}")
+        # only append if not empty
+        [[ ! -z "$arg_cert_ip" ]] && script_args=$(append "$script_args" "--ip ${arg_cert_ip}")
+        [[ ! -z "$arg_cert_domain" ]] && script_args=$(append "$script_args" "--domain ${arg_cert_domain}")
+
+        # args for creating CA
+        [[ ! -z "$arg_ca_out" ]] && script_args=$(append "$script_args" "--ca-out ${arg_ca_out}")
+        [[ ! -z "$arg_ca_key_out" ]] && script_args=$(append "$script_args" "--ca-key-out ${arg_ca_key_out}")
+
+        log $'script args\n'"$script_args"
 
         if [ $verbose = true ]; then
             # append verbose flag if verbose is true

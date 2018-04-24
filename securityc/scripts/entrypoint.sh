@@ -4,6 +4,8 @@ echo "securityc start"
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+. $DIR/example-env-vars.sh
+
 # for append function
 source $DIR/common.sh
 
@@ -22,5 +24,7 @@ $DIR/securityc.sh $args
 echo "starting nginx"
 # TODO(mark): envsubst nginx config
 
+# TODO: debug
+exit 0
 exec nginx -g 'daemon off;'
 
