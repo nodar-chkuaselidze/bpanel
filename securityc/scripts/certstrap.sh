@@ -36,7 +36,7 @@ function usage() {
 # move a file from first arg to second arg
 function move() {
   chmod u+w "$1"
-  log $'Runing command:\n'"mv $1 $2"
+  log $'Running command:\n'"mv $1 $2"
   mv -f "$1" "$2"
   chmod u-w "$2"
 }

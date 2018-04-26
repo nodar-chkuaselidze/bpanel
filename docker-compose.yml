@@ -30,7 +30,7 @@ services:
     restart: unless-stopped
     ports:
       - "80:80"
-      - "4443:4443"
+      - "443:443"
     env_file:
       - ./securityc/config/nginx.env
     volumes:
