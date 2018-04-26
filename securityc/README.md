@@ -22,10 +22,12 @@ Building the container
 ```bash
 $ basename $PWD
 > bpanel
-$ docker build -t bpanel/securityc:0.0.1 securityc
+$ docker-compose build securityc
 ```
 
 Generate a CA cert/key pair or provide a CA cert/key pair to create leaf certificate cert/key pairs.
+This is useful if you need TLS termination while you are developing, for example some hardware
+wallet libraries like [bledger](https://github.com/bcoin-org/bledger) require HTTPS.
 securityc is configured with environmental variables. An arbitrary number of certs can be generated,
 to properly bundle the inputs per cert, the environmental variables must follow the schema:
 
@@ -53,7 +55,6 @@ The `{ARG_NAME}`s that can be provided are:
 - `CERT_OUT` (REQUIRED) - Output file for leaf TLS cert
 
 An example where the `{APP_NAME}` is set to `SERVER` looks like this:
-
 
 ```bash
 # common names
